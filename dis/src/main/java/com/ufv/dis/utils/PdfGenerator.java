@@ -1,51 +1,64 @@
 package com.ufv.dis.utils;
 
-import com.github.librepdf.openpdf.text.*;
-import com.github.librepdf.openpdf.text.pdf.PdfWriter;
 import com.ufv.dis.model.Usuario;
+import org.apache.pdfbox.pdmodel.*;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
-import java.io.FileOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class PdfGenerator {
 
+    private static final float MARGIN = 50;
+    private static final float LINE_HEIGHT = 14.5f;
+
     public static void generarPdf(List<Usuario> usuarios) {
-        try {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, new FileOutputStream("info.pdf"));
-            document.open();
+        System.out.println("→ Iniciando generación de PDF con " + usuarios.size() + " usuarios...");
 
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
 
-            document.add(new Paragraph("Listado de Usuarios", titleFont));
-            document.add(new Paragraph(" ")); // espacio
+            PDPageContentStream contentStream = new PDPageContentStream(document, page);
+            contentStream.beginText();
+            contentStream.setFont(PDType1Font.HELVETICA, 12);
+            contentStream.setLeading(LINE_HEIGHT);
+            contentStream.newLineAtOffset(MARGIN, PDRectangle.A4.getHeight() - MARGIN);
+
+            contentStream.showText("Listado de usuarios:");
+            contentStream.newLine();
+            contentStream.newLine();
+
+            float yPosition = PDRectangle.A4.getHeight() - MARGIN;
 
             for (Usuario u : usuarios) {
-                document.add(new Paragraph("ID: " + u.getId(), normalFont));
-                document.add(new Paragraph("Nombre: " + u.getNombre() + " " + u.getApellidos(), normalFont));
-                document.add(new Paragraph("NIF: " + u.getNif(), normalFont));
-                document.add(new Paragraph("Email: " + u.getEmail(), normalFont));
+                if (u == null) continue;
 
-                if (u.getDireccion() != null) {
-                    document.add(new Paragraph("Dirección: " +
-                            u.getDireccion().getCalle() + " " + u.getDireccion().getNumero() + ", " +
-                            u.getDireccion().getPisoLetra() + ", " + u.getDireccion().getCodigoPostal() + ", " +
-                            u.getDireccion().getCiudad(), normalFont));
-                }
+                // Aseguramos que ningún campo sea null
+                String nombre = (u.getNombre() != null) ? u.getNombre() : "(sin nombre)";
+                String apellidos = (u.getApellidos() != null) ? u.getApellidos() : "";
+                String email = (u.getEmail() != null) ? u.getEmail() : "(sin email)";
 
-                if (u.getMetodoPago() != null) {
-                    document.add(new Paragraph("Método de pago: " +
-                            u.getMetodoPago().getNumeroTarjeta() + " - " +
-                            u.getMetodoPago().getNombreAsociado(), normalFont));
-                }
-
-                document.add(new Paragraph(" "));
-                document.add(new LineSeparator());
+                contentStream.showText("Usuario: " + nombre + " " + apellidos);
+                contentStream.newLine();
+                contentStream.showText("Email: " + email);
+                contentStream.newLine();
+                contentStream.newLine();
             }
 
-            document.close();
-        } catch (Exception e) {
+
+            contentStream.endText();
+            contentStream.close();
+
+            File outputFile = new File("info.pdf");
+            document.save(outputFile);
+
+            System.out.println("✔ PDF generado correctamente en: " + outputFile.getAbsolutePath());
+
+        } catch (IOException e) {
+            System.err.println("✖ Error al generar el PDF: " + e.getMessage());
             e.printStackTrace();
         }
     }

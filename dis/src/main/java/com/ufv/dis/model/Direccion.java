@@ -23,4 +23,3 @@ public class Direccion {
     public String getCiudad() { return ciudad; }
     public void setCiudad(String ciudad) { this.ciudad = ciudad; }
 }
-)
